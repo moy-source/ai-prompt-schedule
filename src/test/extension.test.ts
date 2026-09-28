@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { deleteScheduledMessage, parseLocalDateTime, updateScheduledMessage } from '../extension';
+import { deleteScheduledMessage, isChatGptDesktopProcess, isDesktopAppProcess, parseLocalDateTime, updateScheduledMessage } from '../extension';
 
 suite('Extension Test Suite', () => {
 	test('parses a valid local date and time', () => {
@@ -16,6 +16,20 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(parseLocalDateTime('2026-02-30 14:30'), undefined);
 		assert.strictEqual(parseLocalDateTime('2026-09-28 25:30'), undefined);
 		assert.strictEqual(parseLocalDateTime('28-09-2026 14:30'), undefined);
+	});
+
+	test('recognizes the ChatGPT desktop process without matching unrelated windows', () => {
+		assert.strictEqual(isChatGptDesktopProcess('ChatGPT'), true);
+		assert.strictEqual(isChatGptDesktopProcess('chatgpt'), true);
+		assert.strictEqual(isChatGptDesktopProcess('Code'), false);
+		assert.strictEqual(isChatGptDesktopProcess('chrome'), false);
+	});
+
+	test('recognizes the Codex desktop process independently from other apps', () => {
+		assert.strictEqual(isDesktopAppProcess('Codex', 'Codex'), true);
+		assert.strictEqual(isDesktopAppProcess('codex', 'Codex'), true);
+		assert.strictEqual(isDesktopAppProcess('ChatGPT', 'Codex'), false);
+		assert.strictEqual(isDesktopAppProcess('Code', 'Codex'), false);
 	});
 
 	test('updates a scheduled message without affecting other items', () => {

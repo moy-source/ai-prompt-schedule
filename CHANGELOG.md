@@ -2,6 +2,11 @@
 
 All notable changes to the `ai-prompt-schedule` extension will be documented in this file.
 
+## [0.0.6]
+
+- Added Codex Desktop as a separate target from the Codex VS Code extension.
+- Expanded setup, installation, usage, and platform-specific automation documentation.
+
 ## [0.0.5]
 
 - Added editing of scheduled prompt text, time, and target agent, plus individual deletion from the dashboard and command palette.

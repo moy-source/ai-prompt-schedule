@@ -8,26 +8,43 @@ interface ScheduledMessage {
 	provider: ProviderId;
 }
 
-export type ProviderId = 'codex' | 'claude' | 'gemini' | 'copilot' | 'cline';
+export type ProviderId = 'codex' | 'codexDesktop' | 'claude' | 'gemini' | 'copilot' | 'cline' | 'chatgpt';
 
 interface Provider {
 	id: ProviderId;
 	label: string;
-	extensionId: string;
-	focusCommand: string;
+	extensionId?: string;
+	focusCommand?: string;
+	desktopProcessName?: string;
 }
 
 const providers: Provider[] = [
-	{ id: 'codex', label: 'OpenAI Codex', extensionId: 'openai.chatgpt', focusCommand: 'chatgpt.openSidebar' },
+	{ id: 'codex', label: 'OpenAI Codex (VS Code extension)', extensionId: 'openai.chatgpt', focusCommand: 'chatgpt.openSidebar' },
+	{ id: 'codexDesktop', label: 'Codex Desktop (active window)', desktopProcessName: 'Codex' },
 	{ id: 'claude', label: 'Claude Code', extensionId: 'anthropic.claude-code', focusCommand: 'claude-vscode.focus' },
 	{ id: 'gemini', label: 'Gemini Code Assist', extensionId: 'google.geminicodeassist', focusCommand: 'cloudcode.duetAI.chatView.focus' },
 	{ id: 'copilot', label: 'GitHub Copilot Chat', extensionId: 'github.copilot-chat', focusCommand: 'workbench.action.chat.open' },
-	{ id: 'cline', label: 'Cline', extensionId: 'saoudrizwan.claude-dev', focusCommand: 'cline.focusChatInput' }
+	{ id: 'cline', label: 'Cline', extensionId: 'saoudrizwan.claude-dev', focusCommand: 'cline.focusChatInput' },
+	{ id: 'chatgpt', label: 'ChatGPT Desktop (active window)', desktopProcessName: 'ChatGPT' }
 ];
+
+export function isChatGptDesktopProcess(processName: string): boolean {
+	return isDesktopAppProcess(processName, 'ChatGPT');
+}
+
+export function isDesktopAppProcess(processName: string, expectedName: string): boolean {
+	return processName.trim().toLowerCase() === expectedName.trim().toLowerCase();
+}
 
 const storageKey = 'scheduledMessages';
 const namespace = 'ai-prompt-schedule';
 const sendKeysScript = "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^v'); Start-Sleep -Milliseconds 350; [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')";
+const foregroundProcessScript = [
+	`Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class AiPromptScheduleForegroundWindow { [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow(); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId); }'`,
+	'$processId = [uint32]0',
+	'[void][AiPromptScheduleForegroundWindow]::GetWindowThreadProcessId([AiPromptScheduleForegroundWindow]::GetForegroundWindow(), [ref]$processId)',
+	'if ($processId -gt 0) { (Get-Process -Id $processId -ErrorAction SilentlyContinue).ProcessName }'
+].join('; ');
 const macSendScript = [
 	'tell application "Visual Studio Code" to activate',
 	'delay 0.6',
@@ -37,12 +54,19 @@ const macSendScript = [
 	'key code 36',
 	'end tell'
 ].join('\n');
+const macDesktopSendScript = [
+	'tell application "System Events"',
+	'keystroke "v" using {command down}',
+	'delay 0.35',
+	'key code 36',
+	'end tell'
+].join('\n');
 
-function pasteAndSubmit(): Promise<void> {
+function pasteAndSubmit(providerId: ProviderId): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const command = process.platform === 'darwin' ? 'osascript' : 'powershell.exe';
 		const args = process.platform === 'darwin'
-			? ['-e', macSendScript]
+				? ['-e', providers.some((provider) => provider.id === providerId && provider.desktopProcessName) ? macDesktopSendScript : macSendScript]
 			: ['-NoProfile', '-NonInteractive', '-STA', '-Command', sendKeysScript];
 		execFile(command, args, { windowsHide: process.platform === 'win32', timeout: 10_000 }, (error) => {
 			if (error) {
@@ -52,6 +76,41 @@ function pasteAndSubmit(): Promise<void> {
 			}
 		});
 	});
+}
+
+function getForegroundProcessName(): Promise<string> {
+	return new Promise((resolve, reject) => {
+		if (process.platform === 'win32') {
+			execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', foregroundProcessScript], { windowsHide: true, timeout: 10_000 }, (error, stdout) => {
+				if (error) {
+					reject(error);
+				} else {
+					resolve(stdout.trim());
+				}
+			});
+			return;
+		}
+		if (process.platform === 'darwin') {
+			execFile('osascript', ['-e', 'tell application "System Events" to get name of first application process whose frontmost is true'], { timeout: 10_000 }, (error, stdout) => {
+				if (error) {
+					reject(error);
+				} else {
+					resolve(stdout.trim());
+				}
+			});
+			return;
+		}
+		reject(new Error('ChatGPT Desktop automation is only supported on Windows and macOS.'));
+	});
+}
+
+async function isDesktopAppActive(processName: string): Promise<boolean> {
+	try {
+		return isDesktopAppProcess(await getForegroundProcessName(), processName);
+	} catch (error) {
+		console.error(`Could not identify the active ${processName} Desktop window`, error);
+		return false;
+	}
 }
 
 export function parseLocalDateTime(value: string): Date | undefined {
@@ -218,10 +277,10 @@ function render(state) {
 		name.className = 'agent-label';
 		name.textContent = agent.label;
 		row.append(checkbox, name);
-		if (!agent.installed) {
+		if (agent.desktopApp || !agent.installed) {
 			const badge = document.createElement('span');
 			badge.className = 'badge';
-			badge.textContent = 'not installed';
+			badge.textContent = agent.desktopApp ? 'keep active at send time' : 'not installed';
 			row.append(badge);
 		}
 		agentsRoot.append(row);
@@ -324,7 +383,10 @@ export function activate(context: vscode.ExtensionContext): void {
 			id: provider.id,
 			label: provider.label,
 			enabled: isProviderEnabled(provider.id),
-			installed: Boolean(vscode.extensions.getExtension(provider.extensionId))
+			installed: provider.desktopProcessName
+				? process.platform === 'win32' || process.platform === 'darwin'
+				: Boolean(provider.extensionId && vscode.extensions.getExtension(provider.extensionId)),
+			desktopApp: Boolean(provider.desktopProcessName)
 		})),
 		defaultProvider: getConfiguration().get<ProviderId>('defaultProvider', 'codex'),
 		automaticSend: getConfiguration().get<boolean>('automaticSend', true)
@@ -361,6 +423,12 @@ export function activate(context: vscode.ExtensionContext): void {
 			return false;
 		}
 		const provider = getProvider(providerId);
+		if (provider.desktopProcessName) {
+			return isDesktopAppActive(provider.desktopProcessName);
+		}
+		if (!provider.extensionId || !provider.focusCommand) {
+			return false;
+		}
 		const focusCommand = getConfiguration().get<string>(`providers.${providerId}.focusCommand`, provider.focusCommand);
 		try {
 			const commands = await vscode.commands.getCommands(true);
@@ -412,29 +480,33 @@ export function activate(context: vscode.ExtensionContext): void {
 			}
 
 			for (const message of due) {
-				if (process.platform === 'win32' && !vscode.window.state.focused) {
+				const provider = getProvider(message.provider);
+				if (process.platform === 'win32' && !provider.desktopProcessName && !vscode.window.state.focused) {
 					continue;
 				}
 				const focused = await focusProviderChat(message.provider);
 				await new Promise((resolve) => setTimeout(resolve, 350));
-				if (!focused || (process.platform === 'win32' && !vscode.window.state.focused)) {
-					if ((process.platform === 'darwin' || vscode.window.state.focused) && !focusWarnings.has(message.provider)) {
+				const targetStillActive = provider.desktopProcessName
+					? await isDesktopAppActive(provider.desktopProcessName)
+					: process.platform !== 'win32' || vscode.window.state.focused;
+				if (!focused || !targetStillActive) {
+					if (!provider.desktopProcessName && (process.platform === 'darwin' || vscode.window.state.focused) && !focusWarnings.has(message.provider)) {
 						focusWarnings.add(message.provider);
-						void vscode.window.showWarningMessage(`Could not focus ${getProvider(message.provider).label} input; the scheduled message remains queued.`);
+						void vscode.window.showWarningMessage(`Could not focus ${provider.label} input; the scheduled message remains queued.`);
 					}
 					continue;
 				}
 
 				await vscode.env.clipboard.writeText(message.text);
 				try {
-					await pasteAndSubmit();
+					await pasteAndSubmit(message.provider);
 					messages = messages.filter((item) => item.id !== message.id);
 					await persist();
-					void vscode.window.showInformationMessage(`Automatically sent scheduled message to ${getProvider(message.provider).label}.`);
+					void vscode.window.showInformationMessage(`Automatically sent scheduled message to ${provider.label}.`);
 				} catch (error) {
 					messages = messages.filter((item) => item.id !== message.id);
 					await persist();
-					void vscode.window.showErrorMessage(`Could not automatically send to ${getProvider(message.provider).label}. The prompt remains on the clipboard.`);
+					void vscode.window.showErrorMessage(`Could not automatically send to ${provider.label}. The prompt remains on the clipboard.`);
 					console.error('Scheduled prompt keyboard submission failed', error);
 				}
 			}
@@ -573,7 +645,9 @@ export function activate(context: vscode.ExtensionContext): void {
 		const providerChoice = await vscode.window.showQuickPick(
 			orderedProviders.map((provider) => ({
 				label: provider.label,
-				description: vscode.extensions.getExtension(provider.extensionId) ? undefined : 'Extension not installed',
+						description: provider.desktopProcessName
+							? `Keep ${provider.label.replace(' (active window)', '')} in the foreground when the message is due`
+					: (provider.extensionId && vscode.extensions.getExtension(provider.extensionId) ? undefined : 'Extension not installed'),
 				id: provider.id
 			})),
 			{ placeHolder: 'Choose the agent chat for this message', ignoreFocusOut: true }
@@ -609,7 +683,9 @@ export function activate(context: vscode.ExtensionContext): void {
 			const providerChoice = await vscode.window.showQuickPick(
 				orderedProviders.map((provider) => ({
 					label: provider.label,
-					description: vscode.extensions.getExtension(provider.extensionId) ? undefined : 'Extension not installed',
+					description: provider.desktopProcessName
+						? `Keep ${provider.label.replace(' (active window)', '')} in the foreground when the message is due`
+						: (provider.extensionId && vscode.extensions.getExtension(provider.extensionId) ? undefined : 'Extension not installed'),
 					id: provider.id
 				})),
 				{ placeHolder: 'Choose the agent chat for this message', ignoreFocusOut: true }

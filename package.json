@@ -2,8 +2,8 @@
   "name": "ai-prompt-schedule",
   "publisher": "local",
   "displayName": "AI Prompt Schedule",
-  "description": "Schedule and automatically send prompts to AI coding chats",
-  "version": "0.0.5",
+  "description": "Schedule prompts for AI desktop apps and VS Code chat extensions",
+  "version": "0.0.6",
   "repository": {
     "type": "git",
     "url": "https://github.com/moy-source/ai-prompt-schedule.git"
@@ -19,7 +19,8 @@
     "claude",
     "gemini",
     "copilot",
-    "cline"
+    "cline",
+    "chatgpt-desktop"
   ],
   "engines": {
     "vscode": "^1.138.0"
@@ -70,14 +71,19 @@
       "properties": {
         "ai-prompt-schedule.defaultProvider": {
           "type": "string",
-          "enum": ["codex", "claude", "gemini", "copilot", "cline"],
+          "enum": ["codex", "codexDesktop", "claude", "gemini", "copilot", "cline", "chatgpt"],
           "default": "codex",
           "description": "Preselected agent when creating a scheduled message. Each schedule can target a different agent."
         },
         "ai-prompt-schedule.providers.codex.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Allow scheduling messages for OpenAI Codex."
+          "description": "Allow scheduling messages for the OpenAI Codex VS Code extension."
+        },
+        "ai-prompt-schedule.providers.codexDesktop.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow scheduling messages for the active Codex Desktop window on Windows and macOS."
         },
         "ai-prompt-schedule.providers.claude.enabled": {
           "type": "boolean",
@@ -98,6 +104,11 @@
           "type": "boolean",
           "default": true,
           "description": "Allow scheduling messages for Cline."
+        },
+        "ai-prompt-schedule.providers.chatgpt.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow scheduling messages for the active ChatGPT Desktop window on Windows and macOS."
         },
         "ai-prompt-schedule.providers.codex.focusCommand": {
           "type": "string",
