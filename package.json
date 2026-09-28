@@ -9,7 +9,7 @@
     "url": "https://github.com/moy-source/ai-prompt-schedule.git"
   },
   "homepage": "https://github.com/moy-source/ai-prompt-schedule#readme",
-  "license": "MIT",
+    "version": "0.0.3",
   "bugs": {
     "url": "https://github.com/moy-source/ai-prompt-schedule/issues"
   },

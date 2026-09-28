@@ -2,9 +2,10 @@
 
 All notable changes to the `ai-prompt-schedule` extension will be documented in this file.
 
-## [Unreleased]
+## [0.0.3]
 
-- Published the project repository and added English product documentation.
+- Updated the Activity Bar calendar icon with an AI sparkle mark.
+- Published the public GitHub repository and product documentation.
 
 
 ## [0.0.2]
