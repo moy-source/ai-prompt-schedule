@@ -32,6 +32,13 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(isDesktopAppProcess('Code', 'Codex'), false);
 	});
 
+	test('recognizes Claude Desktop independently from Claude Code in VS Code', () => {
+		assert.strictEqual(isDesktopAppProcess('Claude', 'Claude'), true);
+		assert.strictEqual(isDesktopAppProcess('claude', 'Claude'), true);
+		assert.strictEqual(isDesktopAppProcess('Code', 'Claude'), false);
+		assert.strictEqual(isDesktopAppProcess('Claude Code', 'Claude'), false);
+	});
+
 	test('updates a scheduled message without affecting other items', () => {
 		const original: Array<{ id: string; fireAt: number; text: string; provider: 'codex' | 'copilot' | 'claude' }> = [
 			{ id: 'a', fireAt: 1_700_000_000_000, text: 'Alpha', provider: 'codex' },

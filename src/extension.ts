@@ -8,7 +8,7 @@ interface ScheduledMessage {
 	provider: ProviderId;
 }
 
-export type ProviderId = 'codex' | 'codexDesktop' | 'claude' | 'gemini' | 'copilot' | 'cline' | 'chatgpt';
+export type ProviderId = 'codex' | 'codexDesktop' | 'claude' | 'claudeDesktop' | 'gemini' | 'copilot' | 'cline' | 'chatgpt';
 
 interface Provider {
 	id: ProviderId;
@@ -20,12 +20,13 @@ interface Provider {
 
 const providers: Provider[] = [
 	{ id: 'codex', label: 'OpenAI Codex (VS Code extension)', extensionId: 'openai.chatgpt', focusCommand: 'chatgpt.openSidebar' },
-	{ id: 'codexDesktop', label: 'Codex Desktop (active window)', desktopProcessName: 'Codex' },
+	{ id: 'codexDesktop', label: 'Codex Desktop (active app)', desktopProcessName: 'Codex' },
 	{ id: 'claude', label: 'Claude Code', extensionId: 'anthropic.claude-code', focusCommand: 'claude-vscode.focus' },
+	{ id: 'claudeDesktop', label: 'Claude Desktop (active app)', desktopProcessName: 'Claude' },
 	{ id: 'gemini', label: 'Gemini Code Assist', extensionId: 'google.geminicodeassist', focusCommand: 'cloudcode.duetAI.chatView.focus' },
 	{ id: 'copilot', label: 'GitHub Copilot Chat', extensionId: 'github.copilot-chat', focusCommand: 'workbench.action.chat.open' },
 	{ id: 'cline', label: 'Cline', extensionId: 'saoudrizwan.claude-dev', focusCommand: 'cline.focusChatInput' },
-	{ id: 'chatgpt', label: 'ChatGPT Desktop (active window)', desktopProcessName: 'ChatGPT' }
+	{ id: 'chatgpt', label: 'ChatGPT Desktop (active app)', desktopProcessName: 'ChatGPT' }
 ];
 
 export function isChatGptDesktopProcess(processName: string): boolean {
@@ -100,7 +101,7 @@ function getForegroundProcessName(): Promise<string> {
 			});
 			return;
 		}
-		reject(new Error('ChatGPT Desktop automation is only supported on Windows and macOS.'));
+		reject(new Error('Desktop app automation is only supported on Windows and macOS.'));
 	});
 }
 
@@ -646,7 +647,7 @@ export function activate(context: vscode.ExtensionContext): void {
 			orderedProviders.map((provider) => ({
 				label: provider.label,
 						description: provider.desktopProcessName
-							? `Keep ${provider.label.replace(' (active window)', '')} in the foreground when the message is due`
+							? `Keep ${provider.label.replace(' (active app)', '')} in the foreground when the message is due`
 					: (provider.extensionId && vscode.extensions.getExtension(provider.extensionId) ? undefined : 'Extension not installed'),
 				id: provider.id
 			})),
@@ -684,7 +685,7 @@ export function activate(context: vscode.ExtensionContext): void {
 				orderedProviders.map((provider) => ({
 					label: provider.label,
 					description: provider.desktopProcessName
-						? `Keep ${provider.label.replace(' (active window)', '')} in the foreground when the message is due`
+						? `Keep ${provider.label.replace(' (active app)', '')} in the foreground when the message is due`
 						: (provider.extensionId && vscode.extensions.getExtension(provider.extensionId) ? undefined : 'Extension not installed'),
 					id: provider.id
 				})),

@@ -6,7 +6,7 @@ Licensed under the MIT License. See [LICENSE](LICENSE).
 
 ## Features
 
-- Schedule multiple prompts independently for Codex Desktop, ChatGPT Desktop, Codex in VS Code, Claude Code, Gemini Code Assist, GitHub Copilot Chat, or Cline.
+- Schedule multiple prompts independently for Codex Desktop, ChatGPT Desktop, Claude Desktop, Codex in VS Code, Claude Code, Gemini Code Assist, GitHub Copilot Chat, or Cline.
 - Choose the target app or IDE chat separately for every scheduled message.
 - Edit or delete scheduled messages, including changing the prompt, time, and target.
 - Set a default target, disable individual targets, or switch between automatic sending and clipboard reminders.
@@ -42,7 +42,7 @@ The extension is currently distributed through GitHub Releases; it may not appea
 
 ## Usage
 
-1. Open **AI Schedule** from the Activity Bar and select a target in the **Agent** list. The list distinguishes **OpenAI Codex (VS Code extension)** from **Codex Desktop (active window)**; ChatGPT Desktop is also listed separately.
+1. Open **AI Schedule** from the Activity Bar and select a target in the **Agent** list. The list distinguishes **OpenAI Codex (VS Code extension)** from **Codex Desktop (active app)**, and lists Claude Code, Claude Desktop, and ChatGPT Desktop separately.
 2. Choose the date and time in your local timezone, enter the prompt, and schedule it.
 3. To revise a pending message, choose **Edit** to change its prompt, time, or target. Use **Delete** to remove it.
 4. Use `AI Prompt Schedule: Show Scheduled AI Messages` from the Command Palette to manage pending messages, or `AI Prompt Schedule: Cancel Scheduled AI Messages` to clear all of them.
@@ -54,9 +54,9 @@ Choose a default target under **Settings > Extensions > AI Prompt Schedule > Def
 ### Windows
 
 - For VS Code chat extensions, keep VS Code in the foreground when a prompt is due. The desktop must be unlocked.
-- For Codex Desktop or ChatGPT Desktop, keep the selected app in the foreground with the intended conversation open and the message composer focused. The extension does not open a new conversation or switch apps.
+- For Codex Desktop, Claude Desktop, or ChatGPT Desktop, keep the selected app in the foreground with the intended conversation open and the message composer focused. The extension does not open a new conversation or switch apps.
 - Automatic sending uses PowerShell keyboard automation. No extra accessibility permission is required.
-- If the target app is not active when its prompt is due, the message remains queued. The extension can only detect the active app, not verify which control inside that app has focus.
+- If the target app is not active when its prompt is due, the message remains queued. The extension detects `Codex`, `Claude`, or `ChatGPT` as the active app, but cannot verify which control inside that app has focus.
 
 ### macOS
 
@@ -71,7 +71,7 @@ Choose a default target under **Settings > Extensions > AI Prompt Schedule > Def
 
 ## Sending and Privacy
 
-Automatic sending is controlled by **AI Prompt Schedule: Automatic Send** in VS Code Settings. Desktop targets are sent only to the matching foreground app. For both desktop apps and IDE chats, keyboard automation types into whichever composer currently has focus; check the target and conversation before enabling unattended sends.
+Automatic sending is controlled by **AI Prompt Schedule: Automatic Send** in VS Code Settings. Desktop targets are sent only to the matching foreground app. For Codex Desktop, Claude Desktop, and ChatGPT Desktop, keyboard automation continues the currently open conversation; check the target and conversation before enabling unattended sends.
 
 The extension does not read AI credentials or transmit prompts to a separate service. Schedules are stored in VS Code profile storage. At send time, the prompt is copied to the system clipboard and submitted through the selected app's user interface. Clipboard contents are therefore replaced by the scheduled prompt.
 

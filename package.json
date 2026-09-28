@@ -3,7 +3,7 @@
   "publisher": "local",
   "displayName": "AI Prompt Schedule",
   "description": "Schedule prompts for AI desktop apps and VS Code chat extensions",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "repository": {
     "type": "git",
     "url": "https://github.com/moy-source/ai-prompt-schedule.git"
@@ -20,7 +20,8 @@
     "gemini",
     "copilot",
     "cline",
-    "chatgpt-desktop"
+    "chatgpt-desktop",
+    "claude-desktop"
   ],
   "engines": {
     "vscode": "^1.138.0"
@@ -71,7 +72,7 @@
       "properties": {
         "ai-prompt-schedule.defaultProvider": {
           "type": "string",
-          "enum": ["codex", "codexDesktop", "claude", "gemini", "copilot", "cline", "chatgpt"],
+          "enum": ["codex", "codexDesktop", "claude", "claudeDesktop", "gemini", "copilot", "cline", "chatgpt"],
           "default": "codex",
           "description": "Preselected agent when creating a scheduled message. Each schedule can target a different agent."
         },
@@ -89,6 +90,11 @@
           "type": "boolean",
           "default": true,
           "description": "Allow scheduling messages for Claude Code."
+        },
+        "ai-prompt-schedule.providers.claudeDesktop.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow scheduling messages for the active Claude Desktop app on Windows and macOS."
         },
         "ai-prompt-schedule.providers.gemini.enabled": {
           "type": "boolean",

@@ -2,6 +2,11 @@
 
 All notable changes to the `ai-prompt-schedule` extension will be documented in this file.
 
+## [0.0.7]
+
+- Added Claude Desktop as a separate target from Claude Code in VS Code.
+- Renamed desktop targets to the platform-neutral `active app` label for Windows and macOS.
+
 ## [0.0.6]
 
 - Added Codex Desktop as a separate target from the Codex VS Code extension.
