@@ -1,0 +1,163 @@
+{
+  "name": "ai-prompt-schedule",
+  "publisher": "local",
+  "displayName": "AI Prompt Schedule",
+  "description": "Schedule and automatically send prompts to AI coding chats",
+  "version": "0.0.2",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/moy-source/ai-prompt-schedule.git"
+  },
+  "homepage": "https://github.com/moy-source/ai-prompt-schedule#readme",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/moy-source/ai-prompt-schedule/issues"
+  },
+  "keywords": [
+    "ai",
+    "prompt-scheduler",
+    "codex",
+    "claude",
+    "gemini",
+    "copilot",
+    "cline"
+  ],
+  "engines": {
+    "vscode": "^1.138.0"
+  },
+  "categories": [
+    "Productivity"
+  ],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ai-prompt-schedule.addMessage",
+        "title": "Schedule AI Message",
+        "category": "AI Prompt Schedule"
+      },
+      {
+        "command": "ai-prompt-schedule.listMessages",
+        "title": "Show Scheduled AI Messages",
+        "category": "AI Prompt Schedule"
+      },
+      {
+        "command": "ai-prompt-schedule.cancelMessages",
+        "title": "Cancel Scheduled AI Messages",
+        "category": "AI Prompt Schedule"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aiPromptSchedule",
+          "title": "AI Schedule",
+          "icon": "media/ai-schedule.svg"
+        }
+      ]
+    },
+    "views": {
+      "aiPromptSchedule": [
+        {
+          "id": "ai-prompt-schedule.dashboard",
+          "name": "Scheduled Prompts",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AI Prompt Schedule",
+      "properties": {
+        "ai-prompt-schedule.defaultProvider": {
+          "type": "string",
+          "enum": ["codex", "claude", "gemini", "copilot", "cline"],
+          "default": "codex",
+          "description": "Preselected agent when creating a scheduled message. Each schedule can target a different agent."
+        },
+        "ai-prompt-schedule.providers.codex.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow scheduling messages for OpenAI Codex."
+        },
+        "ai-prompt-schedule.providers.claude.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow scheduling messages for Claude Code."
+        },
+        "ai-prompt-schedule.providers.gemini.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow scheduling messages for Gemini Code Assist."
+        },
+        "ai-prompt-schedule.providers.copilot.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow scheduling messages for GitHub Copilot Chat."
+        },
+        "ai-prompt-schedule.providers.cline.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow scheduling messages for Cline."
+        },
+        "ai-prompt-schedule.providers.codex.focusCommand": {
+          "type": "string",
+          "default": "chatgpt.openSidebar",
+          "description": "VS Code command used to focus the current Codex chat."
+        },
+        "ai-prompt-schedule.providers.claude.focusCommand": {
+          "type": "string",
+          "default": "claude-vscode.focus",
+          "description": "VS Code command used to focus the current Claude Code input."
+        },
+        "ai-prompt-schedule.providers.gemini.focusCommand": {
+          "type": "string",
+          "default": "cloudcode.duetAI.chatView.focus",
+          "description": "VS Code command used to focus the current Gemini chat."
+        },
+        "ai-prompt-schedule.providers.copilot.focusCommand": {
+          "type": "string",
+          "default": "workbench.action.chat.open",
+          "description": "VS Code command used to open GitHub Copilot Chat."
+        },
+        "ai-prompt-schedule.providers.cline.focusCommand": {
+          "type": "string",
+          "default": "cline.focusChatInput",
+          "description": "VS Code command used to focus the current Cline chat."
+        },
+        "ai-prompt-schedule.focusChatOnReminder": {
+          "type": "boolean",
+          "default": true,
+          "description": "Focus the selected agent's current chat when a scheduled message is due."
+        },
+        "ai-prompt-schedule.automaticSend": {
+          "type": "boolean",
+          "default": true,
+          "description": "On Windows or macOS, paste the scheduled prompt into the focused agent chat and press Enter. macOS requires Accessibility and Automation permissions; disable for clipboard-only reminders."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.138.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "24.x",
+    "typescript-eslint": "^8.61.1",
+    "eslint": "^10.5.0",
+    "typescript": "^6.0.3",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0"
+  },
+  "overrides": {
+    "diff": "^8.0.4",
+    "serialize-javascript": "^7.0.6"
+  }
+}
