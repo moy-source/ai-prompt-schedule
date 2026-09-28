@@ -101,6 +101,14 @@ function parseScheduledMessage(value: unknown): ScheduledMessage | undefined {
 	return { id: message.id, fireAt: message.fireAt, text: message.text, provider };
 }
 
+export function updateScheduledMessage(messages: ScheduledMessage[], id: string, changes: Partial<ScheduledMessage>): ScheduledMessage[] {
+	return messages.map((message) => (message.id === id ? { ...message, ...changes } : message));
+}
+
+export function deleteScheduledMessage(messages: ScheduledMessage[], id: string): ScheduledMessage[] {
+	return messages.filter((message) => message.id !== id);
+}
+
 function dashboardHtml(nonce: string): string {
 	return `<!DOCTYPE html>
 <html lang="en">
@@ -241,14 +249,24 @@ function render(state) {
 		const text = document.createElement('div');
 		text.className = 'schedule-text';
 		text.textContent = message.text;
+		const actions = document.createElement('div');
+		actions.style.display = 'flex';
+		actions.style.flexDirection = 'column';
+		actions.style.gap = '6px';
+		const edit = document.createElement('button');
+		edit.className = 'secondary';
+		edit.type = 'button';
+		edit.textContent = 'Edit';
+		edit.addEventListener('click', () => send({ type: 'edit', id: message.id }));
 		const cancel = document.createElement('button');
 		cancel.className = 'cancel';
 		cancel.type = 'button';
-		cancel.textContent = 'Cancel';
-		cancel.setAttribute('aria-label', 'Cancel scheduled message');
+		cancel.textContent = 'Delete';
+		cancel.setAttribute('aria-label', 'Delete scheduled message');
 		cancel.addEventListener('click', () => send({ type: 'cancel', id: message.id }));
+		actions.append(edit, cancel);
 		main.append(title, time, text);
-		row.append(main, cancel);
+		row.append(main, actions);
 		scheduleList.append(row);
 	}
 }
@@ -456,9 +474,25 @@ export function activate(context: vscode.ExtensionContext): void {
 							break;
 						}
 						case 'cancel':
-							messages = messages.filter((message) => message.id !== data.id);
+							messages = deleteScheduledMessage(messages, data.id ?? '');
 							await persist();
 							break;
+						case 'edit': {
+							const target = messages.find((message) => message.id === data.id);
+							if (!target) {
+								break;
+							}
+							const edited = await editScheduledMessage(target, { isCommand: false });
+							if (edited) {
+								messages = updateScheduledMessage(messages, target.id, {
+									fireAt: edited.fireAt,
+									provider: edited.provider,
+									text: edited.text
+								});
+								await persist();
+							}
+							break;
+						}
 						case 'providerEnabled':
 							if (providers.some((provider) => provider.id === data.provider) && typeof data.enabled === 'boolean') {
 								const target = vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
@@ -488,6 +522,71 @@ export function activate(context: vscode.ExtensionContext): void {
 			});
 		}
 	};
+	const editScheduledMessage = async (existing: ScheduledMessage, options?: { isCommand?: boolean }): Promise<ScheduledMessage | undefined> => {
+		const providerChoice = await pickScheduledProvider(existing.provider, options?.isCommand ?? false);
+		if (!providerChoice) {
+			return undefined;
+		}
+		const timeValue = await vscode.window.showInputBox({
+			prompt: 'Update the local date and time (YYYY-MM-DD HH:mm)',
+			placeHolder: '2026-09-28 14:30',
+			value: toInputDateTime(new Date(existing.fireAt)),
+			ignoreFocusOut: true,
+			validateInput: (value) => {
+				const date = parseLocalDateTime(value);
+				if (!date) {
+					return 'Use a valid local date and time in YYYY-MM-DD HH:mm format.';
+				}
+				return date.getTime() <= Date.now() ? 'Choose a time in the future.' : undefined;
+			}
+		});
+		if (!timeValue) {
+			return undefined;
+		}
+		const fireAt = parseLocalDateTime(timeValue);
+		if (!fireAt || fireAt.getTime() <= Date.now()) {
+			return undefined;
+		}
+		const text = await vscode.window.showInputBox({
+			prompt: `Update the message for ${getProvider(providerChoice.id).label}`,
+			placeHolder: 'Enter the message to send',
+			value: existing.text,
+			ignoreFocusOut: true,
+			validateInput: (value) => !value.trim() ? 'The message cannot be empty.' : undefined
+		});
+		if (!text || !text.trim()) {
+			return undefined;
+		}
+		return { ...existing, fireAt: fireAt.getTime(), provider: providerChoice.id, text: text.trim() };
+	};
+
+	const pickScheduledProvider = async (selectedId: ProviderId, allowEmpty = false): Promise<Provider | undefined> => {
+		const enabledProviders = providers.filter((provider) => isProviderEnabled(provider.id));
+		if (enabledProviders.length === 0) {
+			void vscode.window.showWarningMessage('Enable at least one agent in AI Prompt Schedule settings.');
+			return undefined;
+		}
+		const orderedProviders = [
+			...enabledProviders.filter((provider) => provider.id === selectedId),
+			...enabledProviders.filter((provider) => provider.id !== selectedId)
+		];
+		const providerChoice = await vscode.window.showQuickPick(
+			orderedProviders.map((provider) => ({
+				label: provider.label,
+				description: vscode.extensions.getExtension(provider.extensionId) ? undefined : 'Extension not installed',
+				id: provider.id
+			})),
+			{ placeHolder: 'Choose the agent chat for this message', ignoreFocusOut: true }
+		);
+		if (!providerChoice && !allowEmpty) {
+			return undefined;
+		}
+		if (!providerChoice) {
+			return undefined;
+		}
+		return providers.find((provider) => provider.id === providerChoice.id);
+	};
+
 	context.subscriptions.push(vscode.window.registerWebviewViewProvider('ai-prompt-schedule.dashboard', dashboardProvider));
 	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event) => {
 		if (event.affectsConfiguration(namespace)) {
@@ -558,19 +657,47 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand(`${namespace}.listMessages`, async () => {
 			const sorted = [...messages].sort((left, right) => left.fireAt - right.fireAt);
 			if (sorted.length === 0) {
-				void vscode.window.showInformationMessage('No Codex messages are scheduled.');
+				void vscode.window.showInformationMessage('No scheduled messages are available.');
 				return;
 			}
 			const selected = await vscode.window.showQuickPick(
-				sorted.map((message) => ({ label: `${getProvider(message.provider).label} · ${formatDateTime(new Date(message.fireAt))}`, description: message.text, id: message.id })),
-				{ placeHolder: 'Select scheduled messages to cancel', canPickMany: true }
+				sorted.map((message) => ({
+					label: `${getProvider(message.provider).label} · ${formatDateTime(new Date(message.fireAt))}`,
+					description: message.text,
+					id: message.id
+				})),
+				{ placeHolder: 'Select a scheduled message to edit or delete', ignoreFocusOut: true }
 			);
-			if (!selected || selected.length === 0) {
+			if (!selected) {
 				return;
 			}
-			const ids = new Set(selected.map((item) => item.id));
-			messages = messages.filter((message) => !ids.has(message.id));
-			await persist();
+			const target = messages.find((message) => message.id === selected.id);
+			if (!target) {
+				return;
+			}
+			const action = await vscode.window.showWarningMessage(
+				`${getProvider(target.provider).label} · ${formatDateTime(new Date(target.fireAt))}\n\n${target.text}`,
+				{ modal: false },
+				'Edit',
+				'Delete',
+				'Cancel'
+			);
+			if (action === 'Delete') {
+				messages = deleteScheduledMessage(messages, target.id);
+				await persist();
+				return;
+			}
+			if (action === 'Edit') {
+				const updated = await editScheduledMessage(target, { isCommand: true });
+				if (updated) {
+					messages = updateScheduledMessage(messages, target.id, {
+						fireAt: updated.fireAt,
+						provider: updated.provider,
+						text: updated.text
+					});
+					await persist();
+				}
+			}
 		}),
 		vscode.commands.registerCommand(`${namespace}.cancelMessages`, async () => {
 			if (messages.length === 0) {

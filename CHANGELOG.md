@@ -2,6 +2,10 @@
 
 All notable changes to the `ai-prompt-schedule` extension will be documented in this file.
 
+## [0.0.5]
+
+- Added editing of scheduled prompt text, time, and target agent, plus individual deletion from the dashboard and command palette.
+
 ## [0.0.4]
 
 - Replaced the calendar sparkle with the letters AI drawn inside the calendar icon.
