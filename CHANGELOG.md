@@ -2,6 +2,11 @@
 
 All notable changes to the `ai-prompt-schedule` extension will be documented in this file.
 
+## [0.0.4]
+
+- Replaced the calendar sparkle with the letters AI drawn inside the calendar icon.
+- Synchronized the extension version across the manifest and npm lockfile.
+
 ## [0.0.3]
 
 - Updated the Activity Bar calendar icon with an AI sparkle mark.

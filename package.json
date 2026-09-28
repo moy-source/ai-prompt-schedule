@@ -3,13 +3,12 @@
   "publisher": "local",
   "displayName": "AI Prompt Schedule",
   "description": "Schedule and automatically send prompts to AI coding chats",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "repository": {
     "type": "git",
     "url": "https://github.com/moy-source/ai-prompt-schedule.git"
   },
   "homepage": "https://github.com/moy-source/ai-prompt-schedule#readme",
-    "version": "0.0.3",
   "bugs": {
     "url": "https://github.com/moy-source/ai-prompt-schedule/issues"
   },
